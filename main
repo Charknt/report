@@ -1,26 +1,77 @@
-import transform, weighted, reports
+import transform
+import weighted
+import reports
+
+FILENAME = "ano.csv"  # Global filename used across all modules
+
 
 def menu():
     while True:
         print("\n=== STUDENT CSV MENU ===")
-        print("1. Add Student(s)")
-        print("2. View Valid Data")
-        print("3. Delete by ID")
-        print("4. View Column")
-        print("5. View Student Info")
-        print("6. Analytics Menu")
-        print("7. Reports Menu")   # ← NEW
+        print("1. Add and Save Student(s)")
+        print("2. Read CSV File")
+        print("3. Delete Student by ID")
+        print("4. Select Header Column")
+        print("5. Project Student Record by Student ID")
+        print("6. Analytics and Reports")
+        print("7. Export and Print Reports")
         print("8. Exit")
-        c = input("Choice: ").strip()
 
-        if c=="1": transform.add_data()
-        elif c=="2":
-            rows,_=transform.clean_ingest()
-            for r in rows: print(r)
-        elif c=="3": transform.delete_data()
-        elif c=="4": transform.select_column()
-        elif c=="5": transform.select_row()
-        elif c=="6": analytics_menu()
-        elif c=="7": reports.report_menu()   # ← NEW
-        elif c=="8": print("👋 Goodbye!"); break
-        else: print("❌ Invalid choice.")
+        choice = input("Enter choice: ").strip()
+
+        if choice == "1":
+            transform.add_data(FILENAME)
+        elif choice == "2":
+            valid_rows, _ = transform.clean_ingest(FILENAME)
+            if valid_rows:
+                print("\n📘 Valid rows:")
+                for row in valid_rows:
+                    print(row)
+        elif choice == "3":
+            transform.delete_data(FILENAME)
+        elif choice == "4":
+            transform.select_column(FILENAME)
+        elif choice == "5":
+            transform.select_row(FILENAME)
+        elif choice == "6":
+            analytics_menu()
+        elif choice == "7":
+            reports.report_menu(FILENAME)
+        elif choice == "8":
+            print("👋 Exiting program.")
+            break
+        else:
+            print("❌ Invalid choice. Try again.")
+
+
+def analytics_menu():
+    """Submenu for analytics (weighted.py)"""
+    while True:
+        print("\n📊 ANALYTICS MENU")
+        print("a. Compute Weighted Grades")
+        print("b. Grade Distribution (A–F)")
+        print("c. Percentiles (Top/Bottom 10%)")
+        print("d. Outlier Detection (±2 SD)")
+        print("e. Improvement (Final vs Midterm)")
+        print("f. Back to Main Menu")
+
+        sub = input("Select an option (a–f): ").lower().strip()
+
+        if sub == "a":
+            weighted.compute_grades(FILENAME)
+        elif sub == "b":
+            weighted.grade_distribution(FILENAME)
+        elif sub == "c":
+            weighted.percentiles(FILENAME)
+        elif sub == "d":
+            weighted.outliers(FILENAME)
+        elif sub == "e":
+            weighted.improvement(FILENAME)
+        elif sub == "f":
+            break
+        else:
+            print("❌ Invalid choice. Try again.")
+
+
+if __name__ == "__main__":
+    menu()

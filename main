@@ -1,0 +1,26 @@
+import transform, weighted, reports
+
+def menu():
+    while True:
+        print("\n=== STUDENT CSV MENU ===")
+        print("1. Add Student(s)")
+        print("2. View Valid Data")
+        print("3. Delete by ID")
+        print("4. View Column")
+        print("5. View Student Info")
+        print("6. Analytics Menu")
+        print("7. Reports Menu")   # ← NEW
+        print("8. Exit")
+        c = input("Choice: ").strip()
+
+        if c=="1": transform.add_data()
+        elif c=="2":
+            rows,_=transform.clean_ingest()
+            for r in rows: print(r)
+        elif c=="3": transform.delete_data()
+        elif c=="4": transform.select_column()
+        elif c=="5": transform.select_row()
+        elif c=="6": analytics_menu()
+        elif c=="7": reports.report_menu()   # ← NEW
+        elif c=="8": print("👋 Goodbye!"); break
+        else: print("❌ Invalid choice.")

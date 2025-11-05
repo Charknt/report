@@ -1,0 +1,186 @@
+import csv
+import os
+
+HEADER = [
+    "student_id",
+    "last_name",
+    "first_name",
+    "section",
+    "quiz1",
+    "quiz2",
+    "quiz3",
+    "quiz4",
+    "quiz5",
+    "midterm",
+    "final",
+    "attendance_percent"
+]
+
+FILENAME = "ano.csv"
+
+
+def clean_ingest(filename=FILENAME):
+    if not os.path.exists(filename):
+        print("⚠️ File not found.")
+        return [], []
+
+    valid_rows = []
+    bad_rows = []
+
+    with open(filename, "r", newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if not rows:
+        return [], []
+
+    header = rows[0]
+    data_rows = rows[1:]
+
+    for row in data_rows:
+        try:
+            while len(row) < len(header):
+                row.append("")
+
+            if not row[0].strip():
+                raise ValueError("Missing student_id")
+
+            for i in range(4, 12):
+                val = row[i].strip() if isinstance(row[i], str) else row[i]
+                if val == "" or str(val).lower() == "none":
+                    row[i] = None
+                else:
+                    try:
+                        num_val = float(val)
+                        if not (0 <= num_val <= 100):
+                            raise ValueError(f"{header[i]} out of range")
+                        row[i] = num_val
+                    except ValueError:
+                        row[i] = None
+
+            for i in range(1, 4):
+                if not row[i].strip():
+                    row[i] = "none"
+
+            valid_rows.append(row)
+        except Exception as e:
+            row.append(str(e))
+            bad_rows.append(row)
+
+    print(f"\n✅ Valid rows: {len(valid_rows)}")
+    print(f"⚠️ Bad rows: {len(bad_rows)}")
+    return valid_rows, bad_rows
+
+
+def save_to_csv(data, filename=FILENAME):
+    file_exists = os.path.exists(filename)
+    with open(filename, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(HEADER)
+        writer.writerows(data)
+    print(f"💾 Data saved to {filename}")
+
+
+def save_cleaned_csv(valid_rows, filename=FILENAME):
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(HEADER)
+        writer.writerows(valid_rows)
+    print(f"💾 Cleaned data saved to {filename}")
+
+
+def add_data(filename=FILENAME):
+    new_rows = []
+    n = int(input("How many students to add? "))
+
+    for i in range(n):
+        print(f"\n--- Student #{i+1} ---")
+        student = []
+
+        for idx, h in enumerate(HEADER):
+            while True:
+                val = input(f"Enter {h}: ").strip()
+                if idx == 0:
+                    if not val:
+                        print("❌ student_id cannot be empty.")
+                        continue
+                    student.append(val)
+                    break
+                elif idx in [1, 2, 3]:
+                    if val == "":
+                        val = "none"
+                    elif any(c.isdigit() for c in val):
+                        print("❌ Names and section cannot contain numbers.")
+                        continue
+                    student.append(val)
+                    break
+                elif idx in range(4, 12):
+                    if val == "" or val.lower() == "none":
+                        student.append("none")
+                        break
+                    try:
+                        num_val = float(val)
+                        if not (0 <= num_val <= 100):
+                            print("❌ Must be between 0–100.")
+                            continue
+                        student.append(num_val)
+                        break
+                    except ValueError:
+                        print("❌ Invalid number.")
+                        continue
+
+        new_rows.append(student)
+
+    save_to_csv(new_rows, filename)
+
+
+def delete_data(filename=FILENAME):
+    if not os.path.exists(filename):
+        print("⚠️ File not found.")
+        return
+
+    student_id = input("Enter student_id to delete: ")
+    valid_rows, _ = clean_ingest(filename)
+    updated = [r for r in valid_rows if r[0] != student_id]
+
+    if len(updated) == len(valid_rows):
+        print("❌ No student found with that ID.")
+        return
+
+    save_cleaned_csv(updated, filename)
+    print(f"🗑️ Deleted student_id {student_id}.")
+
+
+def select_column(filename=FILENAME):
+    valid_rows, _ = clean_ingest(filename)
+    if not valid_rows:
+        return
+
+    print("\nAvailable columns:")
+    for i, col in enumerate(HEADER):
+        print(f"{i+1}. {col}")
+
+    col_name = input("Enter column name: ").strip()
+    if col_name not in HEADER:
+        print("❌ Invalid column name.")
+        return
+
+    idx = HEADER.index(col_name)
+    for row in valid_rows:
+        print(row[idx])
+
+
+def select_row(filename=FILENAME):
+    valid_rows, _ = clean_ingest(filename)
+    if not valid_rows:
+        return
+
+    sid = input("Enter student_id: ")
+    for row in valid_rows:
+        if row[0] == sid:
+            print("\n📋 Student Information:")
+            for h, v in zip(HEADER, row):
+                print(f"{h}: {v}")
+            return
+    print("❌ Student not found.")

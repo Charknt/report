@@ -1,0 +1,120 @@
+# weighted.py — simplified version
+import statistics
+import transform  # to use transform.clean_ingest()
+
+# -------------------------------------------------------
+# Helper Functions
+# -------------------------------------------------------
+
+def _get_rows():
+    """Reads and returns valid rows from the CSV via transform."""
+    rows, _ = transform.clean_ingest()
+    return rows or []
+
+def _grade(row):
+    """Compute a weighted grade from one student's row."""
+    try:
+        quizzes = [float(row[i]) for i in range(4, 9)]
+        q_avg = sum(quizzes) / len(quizzes)
+        midterm = float(row[9])
+        final = float(row[10])
+        attend = float(row[11])
+        return (q_avg * 0.3) + (midterm * 0.3) + (final * 0.3) + (attend * 0.1)
+    except:
+        return None
+
+# -------------------------------------------------------
+# Main Analytics
+# -------------------------------------------------------
+
+def compute_grades():
+    rows = _get_rows()
+    if not rows:
+        print("❌ No data to compute grades.")
+        return
+
+    print("\n🎯 Weighted Grades:")
+    for r in rows:
+        g = _grade(r)
+        if g is None:
+            print(f"⚠️ {r[0]} — invalid data")
+        else:
+            print(f"{r[0]} — {r[1]}, {r[2]}: {g:.2f}")
+
+def grade_distribution():
+    rows = _get_rows()
+    grades = [_grade(r) for r in rows if _grade(r) is not None]
+    if not grades:
+        print("❌ No valid grades.")
+        return
+
+    dist = {"A":0,"B":0,"C":0,"D":0,"F":0}
+    for g in grades:
+        if g >= 90: dist["A"] += 1
+        elif g >= 80: dist["B"] += 1
+        elif g >= 70: dist["C"] += 1
+        elif g >= 60: dist["D"] += 1
+        else: dist["F"] += 1
+
+    print("\n📊 Grade Distribution:")
+    for k in dist: print(f"{k}: {dist[k]}")
+    print(f"(Total: {len(grades)})")
+
+def percentiles():
+    rows = _get_rows()
+    grades = [(r[0], r[1], r[2], _grade(r)) for r in rows if _grade(r) is not None]
+    if not grades:
+        print("❌ No valid grades.")
+        return
+
+    grades.sort(key=lambda x: x[3], reverse=True)
+    n = len(grades)
+    top = max(1, n // 10)
+    bottom = max(1, n // 10)
+
+    print(f"\n🏆 Top {top} student(s):")
+    for g in grades[:top]:
+        print(f"{g[0]} — {g[1]}, {g[2]}: {g[3]:.2f}")
+
+    print(f"\n📉 Bottom {bottom} student(s):")
+    for g in grades[-bottom:]:
+        print(f"{g[0]} — {g[1]}, {g[2]}: {g[3]:.2f}")
+
+def outliers():
+    rows = _get_rows()
+    grades = [_grade(r) for r in rows if _grade(r) is not None]
+    if len(grades) < 2:
+        print("⚠️ Not enough data for outliers.")
+        return
+
+    mean = statistics.mean(grades)
+    sd = statistics.stdev(grades)
+    low, high = mean - 2*sd, mean + 2*sd
+    print(f"\n📏 Mean={mean:.2f}, SD={sd:.2f}")
+    print(f"Outliers (<{low:.2f} or >{high:.2f}):")
+
+    for r in rows:
+        g = _grade(r)
+        if g is not None and (g < low or g > high):
+            print(f"⚠️ {r[0]} — {r[1]}, {r[2]}: {g:.2f}")
+
+def improvement():
+    rows = _get_rows()
+    data = []
+    for r in rows:
+        try:
+            mid = float(r[9])
+            fin = float(r[10])
+            diff = fin - mid
+            data.append((r[0], r[1], r[2], mid, fin, diff))
+        except:
+            continue
+
+    if not data:
+        print("⚠️ No valid midterm/final data.")
+        return
+
+    data.sort(key=lambda x: x[5], reverse=True)
+    print("\n📈 Improvement (Final - Midterm):")
+    for d in data:
+        print(f"{d[0]} — {d[1]}, {d[2]}: Mid={d[3]:.1f}, Final={d[4]:.1f}, Diff={d[5]:+.1f}")

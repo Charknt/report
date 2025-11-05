@@ -1,150 +1,94 @@
 import csv
 import os
-from datetime import datetime
-import transform
-import weighted
+import numpy as np
+import weighted  # uses your weighted.py analytics module
 
 FILENAME = "ano.csv"
-REPORT_DIR = "reports"
 
-# Ensure the report folder exists
-os.makedirs(REPORT_DIR, exist_ok=True)
-
-
-# ----------------------------
-# Helper: Export to CSV or TXT
-# ----------------------------
-def export_report(filename, headers, rows, fmt="csv"):
-    """Export report data to /reports directory."""
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_file = os.path.join(REPORT_DIR, f"{filename}_{ts}.{fmt}")
-
-    if fmt == "csv":
-        with open(out_file, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(headers)
-            writer.writerows(rows)
-    else:
-        with open(out_file, "w", encoding="utf-8") as f:
-            f.write("\t".join(headers) + "\n")
-            for r in rows:
-                f.write("\t".join(str(x) for x in r) + "\n")
-
-    print(f"💾 Report exported: {out_file}")
-
-
-# ----------------------------
-# 1️⃣ Student List Report
-# ----------------------------
-def student_list():
-    """Show and export full student list."""
-    valid, _ = transform.clean_ingest(FILENAME)
-    if not valid:
-        print("⚠️ No valid data.")
-        return
-
-    print("\n📋 STUDENT LIST")
-    print("-" * 60)
-    for r in valid:
-        print(f"{r[0]:<10}{r[1]}, {r[2]}  ({r[3]})")
-    print("-" * 60)
-
-    if input("Export to CSV? (y/n): ").lower() == "y":
-        export_report("student_list", transform.HEADER, valid)
-
-
-# ----------------------------
-# 2️⃣ Weighted Grades Report
-# ----------------------------
-def weighted_report():
-    """Show all weighted grades and optionally export."""
-    if not os.path.exists(FILENAME):
-        print("⚠️ Missing data file.")
-        return
-
-    rows = []
-    with open(FILENAME, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for r in reader:
-            grade = weighted.compute_weighted(r)
-            rows.append([r["student_id"], r["last_name"], r["first_name"], grade])
-
-    print("\n📘 WEIGHTED GRADES")
-    print("-" * 50)
-    print(f"{'ID':<10}{'Name':<20}{'Grade':>10}")
-    print("-" * 50)
-    for sid, ln, fn, g in rows:
-        print(f"{sid:<10}{ln+', '+fn:<20}{g if g is not None else 'N/A':>10}")
-    print("-" * 50)
-
-    if input("Export to CSV? (y/n): ").lower() == "y":
-        export_report("weighted_grades", ["student_id", "last_name", "first_name", "weighted_grade"], rows)
-
-
-# ----------------------------
-# 3️⃣ Summary Report
-# ----------------------------
-def summary_report():
-    """Summarize statistics and export to TXT."""
-    if not os.path.exists(FILENAME):
-        print("⚠️ Missing file.")
-        return
-
-    with open(FILENAME, "r", encoding="utf-8") as f:
-        reader = list(csv.DictReader(f))
-        grades = [weighted.compute_weighted(r) for r in reader if weighted.compute_weighted(r) is not None]
-
-    if not grades:
-        print("⚠️ No grades found.")
-        return
-
-    import numpy as np
-    avg = np.mean(grades)
-    med = np.median(grades)
-    high = np.max(grades)
-    low = np.min(grades)
-    std = np.std(grades)
-
-    report_lines = [
-        "📊 SUMMARY REPORT",
-        "-" * 30,
-        f"Total Students: {len(grades)}",
-        f"Average Grade: {avg:.2f}",
-        f"Median Grade:  {med:.2f}",
-        f"Highest Grade: {high:.2f}",
-        f"Lowest Grade:  {low:.2f}",
-        f"Std Deviation: {std:.2f}",
-    ]
-
-    print("\n" + "\n".join(report_lines))
-
-    if input("Export to text file? (y/n): ").lower() == "y":
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_file = os.path.join(REPORT_DIR, f"summary_{ts}.txt")
-        with open(out_file, "w", encoding="utf-8") as f:
-            f.write("\n".join(report_lines))
-        print(f"💾 Exported summary report: {out_file}")
-
-
-# ----------------------------
-# Report Menu
-# ----------------------------
-def report_menu():
+def show_reports_menu():
+    """Menu for viewing and exporting analytics reports."""
     while True:
-        print("\n📑 REPORTS MENU")
-        print("1. Student List")
-        print("2. Weighted Grades")
-        print("3. Summary Statistics")
-        print("4. Back to Main Menu")
+        print("\n=== REPORTS MENU ===")
+        print("1. Show Weighted Grades")
+        print("2. Show Grade Distribution (A–F)")
+        print("3. Show Percentiles (Top/Bottom 10%)")
+        print("4. Show Outliers (±2 SD from mean)")
+        print("5. Show Improvement (Final - Midterm)")
+        print("6. Export All Reports to CSV")
+        print("7. Back to Main Menu")
 
-        ch = input("Choose an option: ").strip()
-        if ch == "1":
-            student_list()
-        elif ch == "2":
-            weighted_report()
-        elif ch == "3":
-            summary_report()
-        elif ch == "4":
+        choice = input("Enter choice (1–7): ").strip()
+
+        if choice == "1":
+            weighted.compute_grades(FILENAME)
+        elif choice == "2":
+            weighted.grade_distribution(FILENAME)
+        elif choice == "3":
+            weighted.percentiles(FILENAME)
+        elif choice == "4":
+            weighted.outliers(FILENAME)
+        elif choice == "5":
+            weighted.improvement(FILENAME)
+        elif choice == "6":
+            export_reports()
+        elif choice == "7":
             break
         else:
-            print("❌ Invalid choice.")
+            print("❌ Invalid choice. Try again.")
+
+
+# ------------------------------------------------------------
+# Export Reports
+# ------------------------------------------------------------
+def export_reports():
+    """Export all analytics to separate CSV report files."""
+    if not os.path.exists(FILENAME):
+        print("⚠️ Data file not found.")
+        return
+
+    base = "reports"
+    os.makedirs(base, exist_ok=True)
+
+    # --- Weighted Grades Report ---
+    with open(FILENAME, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = []
+        for r in reader:
+            grade = weighted.compute_weighted(r)
+            if grade is not None:
+                rows.append([r["student_id"], r["last_name"], r["first_name"], grade])
+
+    with open(os.path.join(base, "weighted_grades.csv"), "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["student_id", "last_name", "first_name", "weighted_grade"])
+        writer.writerows(rows)
+
+    # --- Grade Distribution Report ---
+    grades = np.array([r[3] for r in rows], dtype=float)
+    dist = {
+        "A": np.sum(grades >= 90),
+        "B": np.sum((grades >= 80) & (grades < 90)),
+        "C": np.sum((grades >= 70) & (grades < 80)),
+        "D": np.sum((grades >= 60) & (grades < 70)),
+        "F": np.sum(grades < 60),
+    }
+    with open(os.path.join(base, "grade_distribution.csv"), "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Grade", "Count"])
+        for k, v in dist.items():
+            writer.writerow([k, v])
+
+    # --- Percentile Report ---
+    sorted_rows = sorted(rows, key=lambda x: x[3], reverse=True)
+    n = len(sorted_rows)
+    top = sorted_rows[: max(1, n // 10)]
+    bottom = sorted_rows[-max(1, n // 10) :]
+    with open(os.path.join(base, "percentiles.csv"), "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Type", "student_id", "last_name", "first_name", "grade"])
+        for r in top:
+            writer.writerow(["Top 10%", *r])
+        for r in bottom:
+            writer.writerow(["Bottom 10%", *r])
+
+    print(f"\n💾 All reports exported to the '{base}/' folder.")

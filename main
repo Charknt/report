@@ -89,7 +89,8 @@ def menu():
                     print("❌ Invalid choice. Try again.")
 
         elif choice == "7":
-            reports.report_menu()
+            reports.show_reports_menu()
+            
 
         elif choice == "8":
             print("👋 Exiting program.")

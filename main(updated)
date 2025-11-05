@@ -1,10 +1,8 @@
 import csv
 import os
 import statistics
-import weighted   # analytics functions
-import transform  # select, project, sort, insert, delete
-import reports    # print and export reports
-
+import weighted  # your existing weighted.py module
+import transform # select, project, sort, insert, delete
 # ----------------------
 # Configuration
 # ----------------------
@@ -25,6 +23,9 @@ HEADER = [
 ]
 
 
+
+
+
 # ----------------------
 # Main Menu
 # ----------------------
@@ -34,34 +35,32 @@ def menu():
         print("1. Add and Save Student(s)")
         print("2. Read CSV File")
         print("3. Delete Student by ID")
-        print("4. Select Header column")
-        print("5. Project Student Record by Student ID")
-        print("6. Analytics (Weighted, Distribution, etc.)")
-        print("7. Reports (Print & Export)")
+        print("4. Sort Data")
+        print("5. Select Header column")
+        print("6. Project Student Record by Student ID")
+        print("7. Analytics and Reports")
         print("8. Exit")
+
 
         choice = input("Enter choice: ").strip()
 
         if choice == "1":
             transform.add_data()
-
         elif choice == "2":
             valid_rows, _ = transform.clean_ingest()
             if valid_rows:
                 print("\n📘 Valid rows:")
                 for row in valid_rows:
                     print(row)
-
         elif choice == "3":
             transform.delete_data()
-
         elif choice == "4":
-            transform.select_column()
-
+             transform.sort_data()
         elif choice == "5":
-            transform.select_row()
-
+            transform.select_column()
         elif choice == "6":
+            transform.select_row()
+        elif choice == "7":
             while True:
                 print("\n📊 ANALYTICS MENU")
                 print("a. Compute Weighted Grades")
@@ -87,15 +86,9 @@ def menu():
                     break
                 else:
                     print("❌ Invalid choice. Try again.")
-
         elif choice == "7":
-            reports.show_reports_menu()
-            
-
-        elif choice == "8":
             print("👋 Exiting program.")
             break
-
         else:
             print("❌ Invalid choice. Try again.")
 
@@ -103,5 +96,4 @@ def menu():
 # ----------------------
 # Run Program
 # ----------------------
-if __name__ == "__main__":
-    menu()
+menu()
